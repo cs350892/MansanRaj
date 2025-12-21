@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { getPricingTier, calculateItemTotal, formatPrice, formatMargin } from '../utils/pricing';
 
 const ProductCard = ({ product }) => {
-  const [selectedPackSize, setSelectedPackSize] = useState(product.packSizes[0]);
+  // Default pack size if none provided
+  const defaultPackSize = { id: 'default', name: '1 Unit', multiplier: 1 };
+  const [selectedPackSize, setSelectedPackSize] = useState(product.packSizes?.[0] || defaultPackSize);
   const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
 
@@ -28,11 +30,19 @@ const ProductCard = ({ product }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-      <img
-        src={product.image}
-        alt={product.name}
-        className="w-full h-48 object-cover"
-      />
+      <div className="relative">
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-48 object-cover"
+        />
+        {/* Offer Badge - Only show if offer is active */}
+        {product.offerActive && product.hasOffer && product.offerText && (
+          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
+            {product.offerText}
+          </div>
+        )}
+      </div>
       
       <div className="p-4">
         <h3 className="font-semibold text-gray-800 mb-2">{product.name}</h3>
@@ -40,7 +50,14 @@ const ProductCard = ({ product }) => {
         <div className="flex justify-between items-center mb-3">
           <div>
             <span className="text-sm text-gray-500 line-through">{formatPrice(product.mrp)}</span>
-            <span className="text-lg font-bold text-green-600 ml-2">{formatPrice(currentTier.price)}</span>
+            {product.offerActive && product.discountedPrice ? (
+              <>
+                <span className="text-lg font-bold text-red-600 ml-2">{formatPrice(product.discountedPrice)}</span>
+                <span className="text-xs text-green-600 ml-1">({product.discountPercent}% OFF)</span>
+              </>
+            ) : (
+              <span className="text-lg font-bold text-green-600 ml-2">{formatPrice(currentTier.price)}</span>
+            )}
           </div>
           <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
             {formatMargin(currentTier.margin)} margin
@@ -52,12 +69,12 @@ const ProductCard = ({ product }) => {
           <select
             value={selectedPackSize.id}
             onChange={(e) => {
-              const packSize = product.packSizes.find(p => p.id === e.target.value);
+              const packSize = (product.packSizes || [defaultPackSize]).find(p => p.id === e.target.value);
               if (packSize) setSelectedPackSize(packSize);
             }}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           >
-            {product.packSizes.map(pack => (
+            {(product.packSizes || [defaultPackSize]).map(pack => (
               <option key={pack.id} value={pack.id}>
                 {pack.name}
               </option>

@@ -8,6 +8,17 @@
  * @returns {Object} The matching pricing tier or the first tier as fallback
  */
 export const getPricingTier = (product, quantity) => {
+  // If no pricing tiers, use MRP as price with 0 margin
+  if (!product.pricingTiers || product.pricingTiers.length === 0) {
+    return {
+      range: '1+',
+      minQuantity: 1,
+      maxQuantity: null,
+      price: product.mrp || 0,
+      margin: 0
+    };
+  }
+
   // Find the appropriate pricing tier based on quantity
   const tier = product.pricingTiers.find(tier => {
     if (tier.maxQuantity === null) {
@@ -38,7 +49,10 @@ export const calculateItemTotal = (product, quantity, packSizeMultiplier = 1) =>
  * @returns {string} The formatted price (e.g., "₹100.00")
  */
 export const formatPrice = (price) => {
-  return `₹${price.toFixed(2)}`;
+  if (price === undefined || price === null || isNaN(price)) {
+    return '₹0.00';
+  }
+  return `₹${Number(price).toFixed(2)}`;
 };
 
 /**

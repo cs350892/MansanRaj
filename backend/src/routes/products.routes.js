@@ -7,7 +7,8 @@ const { verifyToken, isAdmin } = authMW;
 
 const router = express.Router();
 
-// Public routes - anyone can browse products
+//Public routes - anyone can browse products
+
 router.get('/', productController.getAllProducts);
 router.get('/categories', productController.getCategories);
 router.get('/brands', productController.getBrands);
@@ -28,5 +29,9 @@ const productValidation = [
 router.post('/', verifyToken, isAdmin, productValidation, validateRequest, productController.createProduct);
 router.put('/:id', verifyToken, isAdmin, productValidation, validateRequest, productController.updateProduct);
 router.delete('/:id', verifyToken, isAdmin, productController.deleteProduct);
+
+// Admin: Offer management routes
+router.put('/:id/offer', verifyToken, isAdmin, productController.updateProductOffer);
+router.delete('/:id/offer', verifyToken, isAdmin, productController.removeProductOffer);
 
 export default router;

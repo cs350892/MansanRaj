@@ -72,12 +72,14 @@ const Checkout = () => {
       const orderData = {
         items: [{
           product: checkoutItem.product._id || checkoutItem.product.id,
-          productName: checkoutItem.product.name,
+          name: checkoutItem.product.name,
           packSize: checkoutItem.packSize,
           quantity: checkoutItem.quantity,
-          price: checkoutItem.currentTier.price,
-          total: checkoutItem.itemTotal
+          pricePerUnit: checkoutItem.currentTier.price,
+          subtotal: checkoutItem.itemTotal,
+          totalUnits: checkoutItem.totalQuantity || checkoutItem.quantity
         }],
+        subtotalAmount: checkoutItem.itemTotal,
         totalAmount: checkoutItem.itemTotal,
         deliveryAddress: address,
         paymentMethod: paymentMethod,

@@ -9,7 +9,7 @@ const OrderManagement = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await apiFetch('/admin/orders');
+        const res = await apiFetch('/orders');
         setOrders(res.orders || []);
       } catch (err) {
         setError(err.message);
@@ -20,7 +20,7 @@ const OrderManagement = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      await apiFetch(`/admin/orders/${id}/status`, {
+      await apiFetch(`/orders/${id}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status: newStatus }),
       });
@@ -29,6 +29,7 @@ const OrderManagement = () => {
       ));
     } catch (err) {
       setError(err.message);
+      alert('Failed to update status: ' + err.message);
     }
   };
 
@@ -83,6 +84,7 @@ const OrderManagement = () => {
                     className="p-1 border rounded"
                   >
                     <option value="pending">Pending</option>
+                    <option value="placed">Placed</option>
                     <option value="confirmed">Confirmed</option>
                     <option value="processing">Processing</option>
                     <option value="shipped">Shipped</option>

@@ -18,11 +18,22 @@ const UserLogin = ({ closeModal }) => {
     setLoading(true);
     
     try {
+      console.log('Attempting login...');
       const result = await login(email, password);
+      console.log('Login result:', result);
+      
       if (result.success) {
+        console.log('Login successful! Redirecting...');
         if (closeModal) closeModal();
-        navigate(result.user?.role === 'admin' ? '/admin' : '/profile');
+        
+        // Redirect based on role
+        if (result.user?.role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
       } else {
+        console.error('Login failed:', result.message);
         setError(result.message || 'Invalid credentials');
       }
     } catch (err) {

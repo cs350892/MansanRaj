@@ -32,6 +32,11 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
+  orderId: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
   invoiceId: {
     type: String,
     unique: true,
@@ -79,7 +84,7 @@ const orderSchema = new mongoose.Schema({
   
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'placed', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending',
   },
   deliveryType: {
@@ -128,16 +133,31 @@ const orderSchema = new mongoose.Schema({
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ createdAt: -1 });
+orderSchema.index({ orderId: 1 });
 orderSchema.index({ invoiceId: 1 });
 orderSchema.index({ offerCode: 1 }); // New index for offer queries
 orderSchema.index({ offer: 1 }); // New index for offer reference
 
-// Pre-save middleware to generate invoice ID
+// Pre-save middleware to generate invoice ID and order ID
 orderSchema.pre('save', async function(next) {
-  if (!this.invoiceId && this.isNew) {
-    const count = await this.constructor.countDocuments();
-    const invoiceNumber = String(count + 1).padStart(6, '0');
-    this.invoiceId = `INV${invoiceNumber}`;
+  if (this.isNew) {
+    // Generate invoiceId if not exists
+    if (!this.invoiceId) {
+      const count = await this.constructor.countDocuments();
+      const invoiceNumber = String(count + 1).padStart(6, '0');
+      this.invoiceId = `INV${invoiceNumber}`;
+    }
+    
+    // Generate unique orderId in format: ORD-YYYYMMDD-XXXXXX (timestamp-based)
+    if (!this.orderId) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const timestamp = now.getTime();
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+      this.orderId = `ORD-${year}${month}${day}-${random}`;
+    }
   }
   next();
 });

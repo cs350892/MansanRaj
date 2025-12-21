@@ -20,7 +20,9 @@ router.put('/:id/cancel', verifyToken, orderController.cancelOrder);
 
 // Admin routes
 router.get('/', verifyToken, isAdmin, orderController.getAllOrders);
-router.put('/:id/status', verifyToken, isAdmin, orderController.updateOrderStatus);
+router.put('/:id/status', verifyToken, isAdmin, [
+  body('status').isIn(['pending', 'placed', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']).withMessage('Invalid status value'),
+], validateRequest, orderController.updateOrderStatus);
 router.get('/stats/overview', verifyToken, isAdmin, orderController.getOrderStats);
 
 export default router;

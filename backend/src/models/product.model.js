@@ -26,6 +26,14 @@ const productSchema = new Schema({
   category: { type: String, required: true },
   brand: { type: String, required: true },
   stock: { type: Number, required: true, min: 0 },
+  // Offer/Discount fields (admin-managed, visible to users)
+  hasOffer: { type: Boolean, default: false },
+  offerText: { type: String, default: null },
+  discountPercent: { type: Number, default: 0, min: 0, max: 100 },
+  discountedPrice: { type: Number, default: null },
+  offerActive: { type: Boolean, default: false },
+  offerStartDate: { type: Date, default: null },
+  offerEndDate: { type: Date, default: null },
 }, { timestamps: true });
 
 // Add indexes for faster queries

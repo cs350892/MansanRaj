@@ -14,6 +14,7 @@ export const createOrder = async (req, res, next) => {
 
     // Calculate total and validate stock
     let totalAmount = 0;
+    let subtotalAmount = 0;
     const orderItems = [];
 
     for (const item of items) {
@@ -50,12 +51,14 @@ export const createOrder = async (req, res, next) => {
         subtotal,
       });
 
+      subtotalAmount += subtotal;
       totalAmount += subtotal;
     }
 
     const order = new Order({
       user: req.body.user || req.user.id, // Allow override for testing
       items: orderItems,
+      subtotalAmount: req.body.subtotalAmount || subtotalAmount,
       totalAmount: req.body.totalAmount || totalAmount,
       status: req.body.status || 'pending',
       deliveryType: req.body.deliveryType || 'delivery',
@@ -89,12 +92,52 @@ export const createOrder = async (req, res, next) => {
 // Get user's order history
 export const getUserOrders = async (req, res, next) => {
   try {
+    console.log('=== GET USER ORDERS API CALLED ===');
+    console.log('req.user:', req.user);
+    console.log('User ID from token:', req.user?.id);
+    console.log('User email from token:', req.user?.email);
+    console.log('User role from token:', req.user?.role);
+    
+    if (!req.user || !req.user.id) {
+      console.error('No user ID found in request');
+      return next(createHttpError(401, 'Unauthorized - No user ID'));
+    }
+    
     const orders = await Order.find({ user: req.user.id })
       .sort({ createdAt: -1 })
       .populate('items.product', 'name image');
     
+    console.log('=== QUERY RESULTS ===');
+    console.log('Orders found for user', req.user.id, ':', orders.length);
+    
+    if (orders.length > 0) {
+      console.log('First order details:', {
+        _id: orders[0]._id,
+        orderId: orders[0].orderId,
+        invoiceId: orders[0].invoiceId,
+        userId: orders[0].user,
+        status: orders[0].status,
+        totalAmount: orders[0].totalAmount,
+        itemsCount: orders[0].items?.length
+      });
+    } else {
+      console.log('No orders found for this user');
+      // Check if any orders exist at all
+      const totalOrders = await Order.countDocuments();
+      console.log('Total orders in database:', totalOrders);
+      if (totalOrders > 0) {
+        const sampleOrder = await Order.findOne().select('user');
+        console.log('Sample order user ID:', sampleOrder?.user);
+        console.log('Requested user ID:', req.user.id);
+        console.log('IDs match:', String(sampleOrder?.user) === String(req.user.id));
+      }
+    }
+    
     res.json({ success: true, count: orders.length, orders });
   } catch (err) {
+    console.error('=== ERROR IN GET USER ORDERS ===');
+    console.error('Error:', err.message);
+    console.error('Stack:', err.stack);
     next(createHttpError(500, err.message));
   }
 };

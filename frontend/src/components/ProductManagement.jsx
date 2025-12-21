@@ -60,7 +60,7 @@ const ProductManagement = () => {
         stockStatus: filters.stockStatus
       });
       
-      const response = await apiFetch(`/product?${queryParams}`);
+      const response = await apiFetch(`/products?${queryParams}`);
       
       if (response.success) {
         setProducts(response.products);
@@ -77,7 +77,7 @@ const ProductManagement = () => {
   // Load categories from MongoDB
   const loadCategories = async () => {
     try {
-      const response = await apiFetch('/product/categories');
+      const response = await apiFetch('/products/categories');
       if (response.success) {
         setCategories(response.categories);
       }
@@ -89,7 +89,7 @@ const ProductManagement = () => {
   // Load brands from MongoDB
   const loadBrands = async () => {
     try {
-      const response = await apiFetch('/product/brands');
+      const response = await apiFetch('/products/brands');
       if (response.success) {
         setBrands(response.brands);
       }
@@ -117,7 +117,7 @@ const ProductManagement = () => {
     try {
       if (editMode) {
         // Update existing product
-        const response = await apiFetch(`/product/${formData.id}`, {
+        const response = await apiFetch(`/products/${formData.id}`, {
           method: 'PUT',
           body: JSON.stringify(formData)
         });
@@ -130,7 +130,7 @@ const ProductManagement = () => {
         }
       } else {
         // Create new product
-        const response = await apiFetch('/product', {
+        const response = await apiFetch('/products', {
           method: 'POST',
           body: JSON.stringify(formData)
         });
@@ -154,7 +154,7 @@ const ProductManagement = () => {
 
     try {
       setError(null);
-      const response = await apiFetch(`/product/${productId}`, {
+      const response = await apiFetch(`/products/${productId}`, {
         method: 'DELETE'
       });
       

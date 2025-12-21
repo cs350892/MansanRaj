@@ -302,3 +302,76 @@ export const calculatePrice = async (req, res, next) => {
     next(createHttpError(500, err.message));
   }
 };
+
+// Admin: Add/Update offer on a product
+export const updateProductOffer = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { 
+      hasOffer, 
+      offerText, 
+      discountPercent, 
+      offerActive,
+      offerStartDate,
+      offerEndDate 
+    } = req.body;
+
+    const product = await Product.findOne({ id });
+    if (!product) return next(createHttpError(404, 'Product not found'));
+
+    // Calculate discounted price if discount percentage is provided
+    let discountedPrice = null;
+    if (discountPercent && discountPercent > 0) {
+      discountedPrice = product.mrp * (1 - discountPercent / 100);
+      discountedPrice = Number(discountedPrice.toFixed(2));
+    }
+
+    // Update offer fields
+    product.hasOffer = hasOffer !== undefined ? hasOffer : product.hasOffer;
+    product.offerText = offerText !== undefined ? offerText : product.offerText;
+    product.discountPercent = discountPercent !== undefined ? discountPercent : product.discountPercent;
+    product.discountedPrice = discountedPrice !== undefined ? discountedPrice : product.discountedPrice;
+    product.offerActive = offerActive !== undefined ? offerActive : product.offerActive;
+    product.offerStartDate = offerStartDate !== undefined ? offerStartDate : product.offerStartDate;
+    product.offerEndDate = offerEndDate !== undefined ? offerEndDate : product.offerEndDate;
+
+    await product.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Offer updated successfully', 
+      product 
+    });
+  } catch (err) {
+    next(createHttpError(500, err.message));
+  }
+};
+
+// Admin: Remove offer from a product
+export const removeProductOffer = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findOne({ id });
+    if (!product) return next(createHttpError(404, 'Product not found'));
+
+    // Reset offer fields
+    product.hasOffer = false;
+    product.offerText = null;
+    product.discountPercent = 0;
+    product.discountedPrice = null;
+    product.offerActive = false;
+    product.offerStartDate = null;
+    product.offerEndDate = null;
+
+    await product.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Offer removed successfully', 
+      product 
+    });
+  } catch (err) {
+    next(createHttpError(500, err.message));
+  }
+};

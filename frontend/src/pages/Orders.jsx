@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import Header from '../components/Header';
 import BottomNavigation from '../components/BottomNavigation';
@@ -8,50 +8,76 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { user, token } = useContext(AuthContext);
+  const { user, token, apiFetch } = useContext(AuthContext);
 
-  useEffect(() => {
-    if (user && token) {
-      fetchOrders();
-    }
-  }, [user, token]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      const response = await fetch('http://localhost:5000/api/v1/orders/my-orders', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders');
+      console.log('=== FETCHING ORDERS ===');
+      console.log('User from context:', user);
+      console.log('Token from context:', token ? 'Present (' + token.substring(0, 20) + '...)' : 'Missing');
+      console.log('localStorage user:', localStorage.getItem('user'));
+      console.log('localStorage token:', localStorage.getItem('authToken') ? 'Present' : 'Missing');
+      
+      if (!user || !token) {
+        console.warn('No user or token available');
+        setError('Please login to view orders');
+        setLoading(false);
+        return;
       }
-
-      const data = await response.json();
+      
+      const data = await apiFetch('/orders/my-orders');
+      
+      console.log('=== API RESPONSE ===');
+      console.log('Success:', data.success);
+      console.log('Count:', data.count);
+      console.log('Orders array:', data.orders);
+      
+      if (data.orders && data.orders.length > 0) {
+        console.log('First order sample:', JSON.stringify(data.orders[0], null, 2));
+      } else {
+        console.log('No orders returned from API');
+      }
+      
       setOrders(data.orders || []);
     } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError('Failed to load orders. Please try again.');
+      console.error('=== ERROR FETCHING ORDERS ===');
+      console.error('Error object:', err);
+      console.error('Error message:', err.message);
+      console.error('Error stack:', err.stack);
+      setError(err.message || 'Failed to load orders. Please try again.');
       setOrders([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, token, apiFetch]);
+
+  useEffect(() => {
+    if (user && token) {
+      fetchOrders();
+    } else if (!user) {
+      setLoading(false);
+      setError('Please login to view your orders');
+    }
+  }, [user, token, fetchOrders]);
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed': return 'bg-blue-100 text-blue-800';
+      case 'placed': return 'bg-blue-100 text-blue-800';
+      case 'confirmed': return 'bg-cyan-100 text-cyan-800';
       case 'processing': return 'bg-purple-100 text-purple-800';
       case 'shipped': return 'bg-indigo-100 text-indigo-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getStatusLabel = (status) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   if (loading) {
@@ -105,14 +131,19 @@ const Orders = () => {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="font-semibold text-gray-800">
-                      Order #{order._id?.slice(-8) || 'N/A'}
+                      {order.orderId || `Order #${order._id?.slice(-8) || 'N/A'}`}
                     </h3>
+                    {order.invoiceId && (
+                      <p className="text-xs text-gray-500">
+                        Invoice: {order.invoiceId}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-600">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                    {order.status}
+                    {getStatusLabel(order.status)}
                   </span>
                 </div>
 
@@ -121,23 +152,29 @@ const Orders = () => {
                     <div key={index} className="flex justify-between items-center">
                       <div className="flex items-center space-x-3">
                         <img
-                          src={item.product?.image || '/placeholder.jpg'}
-                          alt={item.product?.name}
+                          src={item.product?.image || item.image || '/placeholder.jpg'}
+                          alt={item.product?.name || item.name}
                           className="w-12 h-12 object-cover rounded"
                         />
                         <div>
-                          <p className="font-medium text-sm">{item.product?.name}</p>
+                          <p className="font-medium text-sm">{item.product?.name || item.name}</p>
                           <p className="text-xs text-gray-600">
-                            {item.quantity} × {formatPrice(item.price)}
+                            {item.quantity} × {formatPrice(item.pricePerUnit)}
                           </p>
                         </div>
                       </div>
-                      <p className="font-semibold text-sm">{formatPrice(item.total)}</p>
+                      <p className="font-semibold text-sm">{formatPrice(item.subtotal)}</p>
                     </div>
                   ))}
                 </div>
 
                 <div className="border-t pt-3">
+                  {order.subtotalAmount && order.subtotalAmount !== order.totalAmount && (
+                    <div className="flex justify-between items-center text-sm mb-1">
+                      <span className="text-gray-600">Subtotal:</span>
+                      <span className="text-gray-800">{formatPrice(order.subtotalAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="font-semibold">Total:</span>
                     <span className="text-lg font-bold text-blue-600">
